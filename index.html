@@ -1,0 +1,233 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>GCU - Gvolta充電時間計算機</title>
+  <style>
+    body {
+      font-family: "Arial", sans-serif;
+      background-color: #FFFAF0;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+      background-color: #f4c2d7;
+      padding: 10px;
+      font-size: 24px;
+    }
+    .section { margin-bottom: 25px; }
+    .section-title {
+      background-color: #cbe2f7;
+      padding: 8px;
+      font-weight: bold;
+    }
+    .input-group, .output-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin: 8px 0;
+    }
+    input {
+      border: 2px solid #3b913b;
+      padding: 4px;
+      width: 100px;
+      font-size: 16px;
+    }
+    .note {
+      font-size: 12px;
+      color: #555;
+      margin-left: 5px;
+    }
+    .label {
+      min-width: 120px;
+      font-weight: bold;
+    }
+    .output-box {
+      background-color: #d6f3d6;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 16px;
+      width: 120px;
+      text-align: center;
+      border: 1px solid #999;
+    }
+    .output-section {
+      background-color: #f9d8c9;
+      padding: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .calculation-ref {
+      background-color: #fef8c3;
+      padding: 10px;
+      font-size: 14px;
+      white-space: pre-line;
+      border: 1px solid #aaa;
+    }
+    button {
+      background-color: #47a447;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 15px auto;
+      display: block;
+    }
+    button:hover { background-color: #3c8c3c; }
+    .output-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 10px 0;
+    }
+    .tag { font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>GCU - Gvolta充電時間計算機</h1>
+
+<div class="section">
+  <div class="section-title">3相AC入力（ブレーカー定格電流を入力）</div>
+  <div class="input-group">
+    <span class="label">電圧</span>
+    <input type="number" id="inputVoltage" min="100" max="2000"> ボルト
+    <span class="label">電流</span>
+    <input type="number" id="inputCurrent" min="10" max="500"> アンペア
+  </div>
+  <div class="note">有効範囲: 電圧 100〜2000V、電流 10〜500A</div>
+</div>
+
+<div class="section">
+  <div class="section-title">バッテリー情報</div>
+  <div class="input-group">
+    <span class="label">バッテリー電圧</span>
+    <input type="number" id="batteryVoltage" min="10" max="1000"> ボルト
+    <span class="label">容量</span>
+    <input type="number" id="batteryAh" min="1" max="2000"> アンペア時 (Ah)
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">現在の充電率（SoC）</div>
+  <div class="input-group">
+    <span class="label">SoC (%)</span>
+    <input type="number" id="socPercent" min="0" max="100"> %
+  </div>
+  <div class="note">0%は完全放電、100%は満充電。例: 25, 50, 75。</div>
+</div>
+
+<button onclick="calculateTime()">計算</button>
+
+<div class="section" style="background-color: #e8f8e8; padding: 10px; text-align:center;">
+  <span class="tag">GC出力電流（最大）：</span>
+  <div class="output-group" style="justify-content:center;">
+    <div class="output-box" id="outputCurrentBox">--</div> アンペア
+  </div>
+</div>
+
+<div class="section output-section">
+  <span class="tag">満充電までの所要時間：</span>
+  <div class="output-wrapper" style="align-items:center;">
+    <div class="input-group" style="justify-content:center;">
+      <span class="label">13kW GCチャージャー：</span>
+      <div class="output-box" id="time13kw">--</div>
+    </div>
+    <div class="input-group" style="justify-content:center;">
+      <span class="label">21kW GCチャージャー：</span>
+      <div class="output-box" id="time21kw">--</div>
+    </div>
+  </div>
+</div>
+
+<div class="calculation-ref" id="calcRef">
+※選択された値に基づいた詳細計算を表示します。
+</div>
+
+<script>
+  function formatTime(hours) {
+    const hr = Math.floor(hours);
+    const min = Math.round((hours - hr) * 60);
+    return `${hr} 時間 ${min} 分`;
+  }
+
+  function calculateTime() {
+    const inputVoltage = parseFloat(document.getElementById("inputVoltage").value);
+    let inputCurrent = parseFloat(document.getElementById("inputCurrent").value);
+    const batteryVoltage = parseFloat(document.getElementById("batteryVoltage").value);
+    const batteryAh = parseFloat(document.getElementById("batteryAh").value);
+    const socPercent = parseFloat(document.getElementById("socPercent").value);
+
+    const ref = [];
+
+    if (isNaN(inputVoltage) || isNaN(inputCurrent) || isNaN(batteryVoltage) || isNaN(batteryAh) || isNaN(socPercent)) {
+      alert("すべての入力欄に値を入力してください。");
+      return;
+    }
+    if (socPercent < 0 || socPercent > 100) {
+      alert("SoCは0〜100%の間で入力してください。");
+      return;
+    }
+
+    // 入力電流補正
+    inputCurrent *= 0.95;
+    ref.push(`入力電流補正（-5%）：${inputCurrent.toFixed(2)} A`);
+
+    // カットオフ電圧 (CC→CV移行点)
+    const cutoffVoltage = batteryVoltage * 1.375;
+    ref.push(`カットオフ電圧：${cutoffVoltage.toFixed(2)} V`);
+
+    // 入力電力と出力電流計算（カットオフ電圧基準）
+    const inputPower = Math.sqrt(3) * inputVoltage * inputCurrent * 0.8 * 0.8; // 効率80%×力率80%
+    const rawOutputCurrent = inputPower / cutoffVoltage;
+    const cLimit = 0.57 * batteryAh;
+    const outputCurrent = Math.min(rawOutputCurrent, cLimit);
+
+    document.getElementById("outputCurrentBox").innerText = outputCurrent.toFixed(1);
+    ref.push(`計算出力電流（カットオフ電圧基準）：${rawOutputCurrent.toFixed(2)} A`);
+    ref.push(`Cレート上限（0.57C）：${cLimit.toFixed(2)} A`);
+    ref.push(`最終出力電流：${outputCurrent.toFixed(2)} A`);
+
+    // SoC残量比
+    const socRatio = (100 - socPercent) / 100;
+    ref.push(`残SoC：${(socRatio * 100).toFixed(1)} %`);
+
+    // 基準時間（0.57Cで満充電 = 56分 = 0.933時間）
+    const baselineHours = 56 / 60;
+    const scaleFactor = cLimit / outputCurrent;
+    const actualFullChargeHours = baselineHours * scaleFactor;
+
+    // 総充電時間（線形スケーリング）
+    const totalHours = actualFullChargeHours * socRatio;
+
+    // 13kW制限
+    const capped13 = Math.min(outputCurrent, 160);
+    const time13 = totalHours * (outputCurrent / capped13);
+
+    // 21kW制限
+    const capped21 = Math.min(outputCurrent, 320);
+    const time21 = totalHours * (outputCurrent / capped21);
+
+    document.getElementById("time13kw").innerText = formatTime(time13);
+    document.getElementById("time21kw").innerText = formatTime(time21);
+
+    // 詳細表示
+    ref.push(`\n【所要時間の内訳】`);
+    ref.push(`満充電基準時間（0.57C時）：${baselineHours.toFixed(2)} 時間`);
+    ref.push(`電流スケーリング係数：${scaleFactor.toFixed(2)}`);
+    ref.push(`実際の満充電時間：${actualFullChargeHours.toFixed(2)} 時間`);
+    ref.push(`残充電時間（線形）：${totalHours.toFixed(2)} 時間`);
+    ref.push(`\n【最終結果】`);
+    ref.push(`13kW: ${formatTime(time13)}`);
+    ref.push(`21kW: ${formatTime(time21)}`);
+
+    document.getElementById("calcRef").innerText = ref.join("\n");
+  }
+</script>
+
+</body>
+</html>
