@@ -121,12 +121,22 @@
   <div class="note">0%は完全放電、100%は満充電。例: 25, 50, 75。</div>
 </div>
 
-<button onclick="calculateTime()">計算</button>
+<div style="display:flex; justify-content:center; gap:0px; margin-top:15px;">
+  <button onclick="calculateTime()">計算</button>
+  <button style="background-color:#d9534f;" onclick="clearFields()">削除</button>
+</div>
 
 <div class="section" style="background-color: #e8f8e8; padding: 10px; text-align:center;">
   <span class="tag">GC出力電流（最大）：</span>
-  <div class="output-group" style="justify-content:center;">
-    <div class="output-box" id="outputCurrentBox">--</div> アンペア
+  <div class="output-wrapper" style="align-items:center;">
+    <div class="input-group" style="justify-content:center;">
+      <span class="label">13kW：</span>
+      <div class="output-box" id="outputCurrent13">--</div> アンペア
+    </div>
+    <div class="input-group" style="justify-content:center;">
+      <span class="label">21kW：</span>
+      <div class="output-box" id="outputCurrent21">--</div> アンペア
+    </div>
   </div>
 </div>
 
@@ -177,45 +187,46 @@
     inputCurrent *= 0.95;
     ref.push(`入力電流補正（-5%）：${inputCurrent.toFixed(2)} A`);
 
-    // カットオフ電圧 (CC→CV移行点)
+    // カットオフ電圧
     const cutoffVoltage = batteryVoltage * 1.375;
     ref.push(`カットオフ電圧：${cutoffVoltage.toFixed(2)} V`);
 
-    // 入力電力と出力電流計算（カットオフ電圧基準）
-    const inputPower = Math.sqrt(3) * inputVoltage * inputCurrent * 0.8 * 0.8; // 効率80%×力率80%
+    // 入力電力と出力電流
+    const inputPower = Math.sqrt(3) * inputVoltage * inputCurrent * 0.8 * 0.8;
     const rawOutputCurrent = inputPower / cutoffVoltage;
     const cLimit = 0.57 * batteryAh;
     const outputCurrent = Math.min(rawOutputCurrent, cLimit);
 
-    document.getElementById("outputCurrentBox").innerText = outputCurrent.toFixed(1);
-    ref.push(`計算出力電流（カットオフ電圧基準）：${rawOutputCurrent.toFixed(2)} A`);
+    // 各充電器の出力電流（制限適用）
+    const output13 = Math.min(outputCurrent, 160);
+    const output21 = Math.min(outputCurrent, 320);
+
+    document.getElementById("outputCurrent13").innerText = output13.toFixed(1);
+    document.getElementById("outputCurrent21").innerText = output21.toFixed(1);
+
+    ref.push(`計算出力電流（カットオフ基準）：${rawOutputCurrent.toFixed(2)} A`);
     ref.push(`Cレート上限（0.57C）：${cLimit.toFixed(2)} A`);
-    ref.push(`最終出力電流：${outputCurrent.toFixed(2)} A`);
+    ref.push(`13kW最終出力電流：${output13.toFixed(2)} A`);
+    ref.push(`21kW最終出力電流：${output21.toFixed(2)} A`);
 
     // SoC残量比
     const socRatio = (100 - socPercent) / 100;
     ref.push(`残SoC：${(socRatio * 100).toFixed(1)} %`);
 
-    // 基準時間（0.57Cで満充電 = 56分 = 0.933時間）
+    // 基準時間（0.57Cで満充電 = 56分）
     const baselineHours = 56 / 60;
     const scaleFactor = cLimit / outputCurrent;
     const actualFullChargeHours = baselineHours * scaleFactor;
 
-    // 総充電時間（線形スケーリング）
     const totalHours = actualFullChargeHours * socRatio;
 
-    // 13kW制限
-    const capped13 = Math.min(outputCurrent, 160);
-    const time13 = totalHours * (outputCurrent / capped13);
-
-    // 21kW制限
-    const capped21 = Math.min(outputCurrent, 320);
-    const time21 = totalHours * (outputCurrent / capped21);
+    // 時間計算（それぞれの制限適用）
+    const time13 = totalHours * (outputCurrent / output13);
+    const time21 = totalHours * (outputCurrent / output21);
 
     document.getElementById("time13kw").innerText = formatTime(time13);
     document.getElementById("time21kw").innerText = formatTime(time21);
 
-    // 詳細表示
     ref.push(`\n【所要時間の内訳】`);
     ref.push(`満充電基準時間（0.57C時）：${baselineHours.toFixed(2)} 時間`);
     ref.push(`電流スケーリング係数：${scaleFactor.toFixed(2)}`);
@@ -227,6 +238,20 @@
 
     document.getElementById("calcRef").innerText = ref.join("\n");
   }
+
+function clearFields() {
+  document.querySelectorAll("input").forEach(input => {
+    const id = input.id;
+    if (id !== "inputVoltage" && id !== "batteryVoltage") {
+      input.value = "";
+    }
+  });
+  document.getElementById("outputCurrent13").innerText = "--";
+  document.getElementById("outputCurrent21").innerText = "--";
+  document.getElementById("time13kw").innerText = "--";
+  document.getElementById("time21kw").innerText = "--";
+  document.getElementById("calcRef").innerText = "※選択された値に基づいた詳細計算を表示します。";
+}
 </script>
 
 </body>
