@@ -141,11 +141,11 @@
 <div class="section-title">3相AC入力（ブレーカー定格電流を入力）</div>
 <div class="input-group">
   <label class="input-with-unit">
-    <input type="number" id="inputVoltage" min="100" max="2000" placeholder="例: 200">
+    <input type="number" id="inputVoltage" min="100" max="2000" placeholder="例: 200" title="コンセントの電圧">
     <span class="unit-label">V</span>
   </label>
   <label class="input-with-unit">
-    <input type="number" id="inputCurrent" min="10" max="500" placeholder="例: 30">
+    <input type="number" id="inputCurrent" min="10" max="500" placeholder="例: 30" title="ブレカーのアンペア">
     <span class="unit-label">A</span>
   </label>
 </div>
@@ -153,18 +153,18 @@
 <div class="section-title">バッテリー情報</div>
 <div class="input-group">
   <label class="input-with-unit">
-    <input type="number" id="batteryVoltage" min="10" max="1000" placeholder="例: 48">
+    <input type="number" id="batteryVoltage" min="10" max="1000" placeholder="例: 48" title="バッテリー電圧">
     <span class="unit-label">V</span>
   </label>
   <label class="input-with-unit">
-    <input type="number" id="batteryAh" min="1" max="2000" placeholder="例: 200">
+    <input type="number" id="batteryAh" min="1" max="2000" placeholder="例: 200"title="バッテリー容量">
     <span class="unit-label">Ah</span>
   </label>
 </div>
 
 <div class="section-title">バッテリー現在チャージ（SoC）％</div>
 <div class="input-with-unit" style="max-width:200px;">
-  <input type="number" id="socPercent" min="0" max="100" placeholder="例: 50">
+  <input type="number" id="socPercent" min="0" max="100" placeholder="例: 50" title="バッテリー現状">
   <span class="unit-label">%</span>
 </div>
 <div class="note">
