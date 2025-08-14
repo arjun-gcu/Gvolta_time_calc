@@ -169,7 +169,7 @@
       <span class="unit-label" id="unitVolt1">V</span>
     </label>
     <label class="input-with-unit">
-      <input type="number" id="inputCurrent" min="10" max="500" placeholder="例: 30">
+      <input type="number" id="inputCurrent" min="10" max="500" placeholder="例: 30" title="ブレカーのアンペア">
       <span class="unit-label" id="unitAmp1">A</span>
     </label>
   </div>
@@ -177,18 +177,18 @@
   <div class="section-title" id="secBattInfo">バッテリー情報</div>
   <div class="input-group">
     <label class="input-with-unit">
-      <input type="number" id="batteryVoltage" min="10" max="1000" placeholder="例: 48">
+      <input type="number" id="batteryVoltage" min="10" max="1000" placeholder="例: 48" title="バッテリー電圧">
       <span class="unit-label" id="unitVolt2">V</span>
     </label>
     <label class="input-with-unit">
-      <input type="number" id="batteryAh" min="1" max="2000" placeholder="例: 200">
+      <input type="number" id="batteryAh" min="1" max="2000" placeholder="例: 200"title="バッテリー容量">
       <span class="unit-label" id="unitAh">Ah</span>
     </label>
   </div>
 
   <div class="section-title" id="secSoc">バッテリー現在チャージ（SoC）％</div>
   <div class="input-with-unit" style="max-width:200px;">
-    <input type="number" id="socPercent" min="0" max="100" placeholder="例: 50">
+    <input type="number" id="socPercent" min="0" max="100" placeholder="例: 50" title="バッテリー現状">
     <span class="unit-label" id="unitPercent">%</span>
   </div>
   <div class="note" id="socNote">
@@ -231,7 +231,7 @@
     </div>
   </div>
 
-  <div class="calculation-ref" id="calcRef"></div>
+  <div class="calculation-ref" id="calcRef">※選択された値に基づいた詳細計算を表示します。</div>
 </div>
 
 <script>
@@ -280,10 +280,28 @@ function setLanguage(lang) {
     const el = document.getElementById(key);
     if (el) el.innerHTML = t[key];
   }
-  document.documentElement.lang = lang;
-  document.getElementById("calcRef").innerText = document.documentElement.lang === "en"
-    ? "Detailed calculations will be shown here based on inputs."
-    : "※選択された値に基づいた詳細計算を表示します。";
+  // HTML lang
+  document.documentElement.lang = (lang === 'en') ? 'en' : 'ja';
+
+  // Placeholders
+  document.getElementById("inputVoltage").placeholder = (lang === 'en') ? "Ex: 200" : "例: 200";
+  document.getElementById("inputCurrent").placeholder = (lang === 'en') ? "Ex: 66" : "例: 66";
+  document.getElementById("batteryVoltage").placeholder = (lang === 'en') ? "Ex: 48" : "例: 48";
+  document.getElementById("batteryAh").placeholder = (lang === 'en') ? "Ex: 200" : "例: 200";
+  document.getElementById("socPercent").placeholder = (lang === 'en') ? "Ex: 50" : "例: 50";
+
+  // Tooltip for first box
+  document.getElementById("inputVoltage").title = (lang === 'en') ? "Outlet voltage" : "コンセントの電圧";
+  document.getElementById("inputCurrent").title = (lang === 'en') ? "Breaker amperage" : "ブレカーのアンペア";
+  document.getElementById("batteryVoltage").title = (lang === 'en') ? "Battery voltage" : "バッテリー電圧";
+  document.getElementById("batteryAh").title = (lang === 'en') ? "Battery capacity" : "バッテリー容量";
+  document.getElementById("socPercent").title = (lang === 'en') ? "Battery state of charge" : "バッテリー現状";
+
+  // Default calcRef message
+  document.getElementById("calcRef").innerText =
+    (lang === 'en')
+      ? "Detailed calculations will be shown here based on inputs."
+      : "※選択された値に基づいた詳細計算を表示します。";
 }
 
 function formatTime(hours) {
@@ -313,59 +331,80 @@ function calculateTime() {
     return;
   }
 
+  // Breaker margin: -5%
   inputCurrent *= 0.95;
   ref.push((isEN ? "Corrected input current (-5%): " : "入力電流補正（-5%）：") + `${inputCurrent.toFixed(2)} A`);
 
+  // CC-CV cutoff
   const cutoffVoltage = batteryVoltage * 1.375;
   ref.push((isEN ? "Cut-off voltage: " : "カットオフ電圧：") + `${cutoffVoltage.toFixed(2)} V`);
 
-  const baseEfficiency = 0.8;
-  const inputPowerBase = Math.sqrt(3) * inputVoltage * inputCurrent * baseEfficiency * 0.8;
-  const rawOutputCurrent = inputPowerBase / cutoffVoltage;
+  // Available AC power (no charger efficiency yet)
+  const pf = 0.8;
+  const Pac = Math.sqrt(3) * inputVoltage * inputCurrent * pf; // W
+  const K = Pac / cutoffVoltage; // A at 100% efficiency (DC side)
 
+  // C-rate limit
   const cLimit = 0.57 * batteryAh;
-  const outputCurrent = Math.min(rawOutputCurrent, cLimit);
 
-  const output13 = Math.min(outputCurrent, 160);
+  // Reference current (for logs & base-time), using 13kW eff = 0.80
+  const rawOutputRef = K * 0.80;
+  const outputRef = Math.min(rawOutputRef, cLimit);
 
-  let eff21;
-  if (outputCurrent <= 160) eff21 = 0.70;
-  else if (outputCurrent >= 320) eff21 = 0.80;
-  else eff21 = 0.70 + ((outputCurrent - 160) / 160) * 0.10;
+  // 13kW charger (fixed 0.80), clamp by charger (160A) and C-rate
+  const output13 = Math.min(K * 0.80, 160, cLimit);
 
-  const adjustedOutput21 = outputCurrent * (eff21 / baseEfficiency);
-  const output21 = Math.min(adjustedOutput21, 320);
+  // 21kW charger: variable efficiency
+  // If K*0.70 <= 160A → low-current zone at eff=0.70; else ramp region 160–320A:
+  // Solve fixed-point: I = K*(0.7 + 0.1*(I-160)/160) ⇒ I = 0.6K / (1 - K/1600)
+  let powerLimited21;
+  if (K * 0.70 <= 160) {
+    powerLimited21 = K * 0.70;
+  } else {
+    const Ifp = (0.6 * K) / (1 - (K / 1600));
+    powerLimited21 = Ifp;
+  }
+  const output21 = Math.min(powerLimited21, 320, cLimit);
 
+  // Report efficiency at the final 21kW current
+  const eff21_report = output21 <= 160 ? 0.70
+    : output21 >= 320 ? 0.80
+    : 0.70 + ((output21 - 160) / 160) * 0.10;
+
+  // Update output boxes
   document.getElementById("outputCurrent13").innerText = output13.toFixed(1);
   document.getElementById("outputCurrent21").innerText = output21.toFixed(1);
 
+  // Breakdown log
   ref.push(
     (isEN
       ? "Calculated output current (breaker current limit based): "
       : "計算出力電流（ブレーカー電流制限基準）："
-    ) + `${rawOutputCurrent.toFixed(2)} A`
+    ) + `${rawOutputRef.toFixed(2)} A`
   );
-  
   ref.push(
     (isEN ? "[13kW fixed eff: " : "[13kW固定効: ") + "0.80] " +
-    (isEN ? "[21kW var eff: " : "[21kW可変効: ") + eff21.toFixed(2) + "]"
+    (isEN ? "[21kW var eff: " : "[21kW可変効: ") + eff21_report.toFixed(2) + "]"
   );
 
-  ref.push((" "));
+  ref.push(" ");
   ref.push((isEN ? "C-rate limit (0.57C): " : "Cレート上限（0.57C）：") + `${cLimit.toFixed(2)} A`);
   ref.push((isEN ? "13kW final output current: " : "13kW最終出力電流：") + `${output13.toFixed(2)} A`);
   ref.push((isEN ? "21kW final output current: " : "21kW最終出力電流：") + `${output21.toFixed(2)} A`);
 
+  // SoC & time math
   const socRatio = (100 - socPercent) / 100;
   ref.push((isEN ? "Remaining SoC: " : "残SoC：") + `${(socRatio * 100).toFixed(1)} %`);
 
+  // Baseline: 0%→100% at 0.57C takes 56 min
   const baselineHours = 56 / 60;
-  const scaleFactor = cLimit / outputCurrent;
+  const scaleFactor = cLimit / outputRef;                 // how much faster/slower than 0.57C
   const actualFullChargeHours = baselineHours * scaleFactor;
-  const totalHours = actualFullChargeHours * socRatio;
+  const totalHours = actualFullChargeHours * socRatio;    // linear remaining-time
 
-  const time13 = totalHours * (outputCurrent / output13);
-  const time21 = totalHours * (outputCurrent / output21);
+  // Charger-specific times by scaling from the same reference current
+  const time13 = totalHours * (outputRef / output13);
+  const time21 = totalHours * (outputRef / output21);
 
   document.getElementById("time13kw").innerText = formatTime(time13);
   document.getElementById("time21kw").innerText = formatTime(time21);
@@ -384,13 +423,22 @@ function calculateTime() {
 }
 
 function clearFields() {
-  ["inputVoltage", "inputCurrent", "batteryAh", "socPercent"].forEach(id => document.getElementById(id).value = "");
+  // Keep inputVoltage & batteryVoltage as requested; clear others.
+  ["inputCurrent", "batteryAh", "socPercent"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("outputCurrent13").innerText = "--";
   document.getElementById("outputCurrent21").innerText = "--";
   document.getElementById("time13kw").innerText = "--";
   document.getElementById("time21kw").innerText = "--";
+  // Reset message in current language
+  document.getElementById("calcRef").innerText =
+    (document.documentElement.lang === 'en')
+      ? "Detailed calculations will be shown here based on inputs."
+      : "※選択された値に基づいた詳細計算を表示します。";
 }
+
+// Initialize
 setLanguage('jp');
 </script>
 </body>
 </html>
+
