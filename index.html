@@ -330,6 +330,10 @@ function calculateTime() {
     alert(isEN ? "SoC must be between 0 and 100." : "SoCは0〜100%の間で入力してください。");
     return;
   }
+    if (inputCurrent < 0 || inputCurrent > 400) {
+    alert(isEN ? "Input Current must be between 1A and 400A." : "ブレーカーのアンペアは１〜４00Aの間で入力してください。");
+    return;
+  }
 
   // Breaker margin: -5%
   inputCurrent *= 0.95;
