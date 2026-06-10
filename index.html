@@ -237,7 +237,7 @@
 
   <div class="calculation-ref" id="calcRef">※選択された値に基づいた詳細計算を表示します。</div>
   <div class="disclaimer" id="disclaimer">充電時間および出力電流は参考値として計算されています。実際の充電時間は、バッテリーの経年劣化や健康状態により異なる場合があります。</div>
-  <div class="version">V 1.0.5</div>
+  <div class="version">V 1.0.6</div>
 </div>
 
 <script>
@@ -352,11 +352,11 @@ function calculateTime() {
   // C-rate limit
   const cLimit = 0.57 * batteryAh;
 
-  // Reference current (for logs), using 13kW eff = 0.80
-  const rawOutputRef = K * 0.80;
+  // Reference current (for logs), using 13kW eff = 0.82
+  const rawOutputRef = K * 0.82;
 
-  // 13kW charger (fixed 0.80), clamp by charger (160A) and C-rate
-  const output13 = Math.min(K * 0.80, 160, cLimit);
+  // 13kW charger (fixed 0.82), clamp by charger (160A) and C-rate
+  const output13 = Math.min(K * 0.82, 160, cLimit);
 
   // Update output box
   document.getElementById("outputCurrent13").innerText = output13.toFixed(1);
@@ -368,7 +368,7 @@ function calculateTime() {
       : "計算出力電流（ブレーカー電流制限基準）："
     ) + `${rawOutputRef.toFixed(2)} A`
   );
-  ref.push((isEN ? "[13kW fixed eff: " : "[13kW固定効: ") + "0.80]");
+  ref.push((isEN ? "[13kW fixed eff: " : "[13kW固定効: ") + "0.82]");
 
   ref.push(" ");
   ref.push((isEN ? "C-rate limit (0.57C): " : "Cレート上限（0.57C）：") + `${cLimit.toFixed(2)} A`);
