@@ -222,11 +222,6 @@
         <div class="output-box" id="outputCurrent13">--</div>
         <span id="unitAmpOut">アンペア</span>
       </div>
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span id="label21">21kW：</span>
-        <div class="output-box" id="outputCurrent21">--</div>
-        <span id="unitAmpOut2">アンペア</span>
-      </div>
     </div>
   </div>
 
@@ -237,16 +232,12 @@
         <span id="label13Time">13kW GCチャージャー：</span>
         <div class="output-box" id="time13kw">--</div>
       </div>
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span id="label21Time">21kW GCチャージャー：</span>
-        <div class="output-box" id="time21kw">--</div>
-      </div>
     </div>
   </div>
 
   <div class="calculation-ref" id="calcRef">※選択された値に基づいた詳細計算を表示します。</div>
   <div class="disclaimer" id="disclaimer">充電時間および出力電流は参考値として計算されています。実際の充電時間は、バッテリーの経年劣化や健康状態により異なる場合があります。</div>
-  <div class="version">V 1.0.4</div>
+  <div class="version">V 1.0.5</div>
 </div>
 
 <script>
@@ -262,11 +253,8 @@ const langData = {
     outCurrentTitle: "GC出力電流（最大）：*",
     outTimeTitle: "満充電までの所要時間：*",
     label13: "13kW：",
-    label21: "21kW：",
     unitAmpOut: "アンペア",
-    unitAmpOut2: "アンペア",
     label13Time: "13kW GCチャージャー：",
-    label21Time: "21kW GCチャージャー：",
     unitVolt1: "V", unitAmp1: "A", unitVolt2: "V", unitAh: "Ah", unitPercent: "%",
     disclaimer: "充電時間および出力電流は参考値として計算されています。実際の充電時間は、バッテリーの経年劣化や健康状態により異なる場合があります。"
   },
@@ -281,11 +269,8 @@ const langData = {
     outCurrentTitle: "GC Output Current (Max):*",
     outTimeTitle: "Time to Full Charge:*",
     label13: "13kW:",
-    label21: "21kW:",
     unitAmpOut: "Amps",
-    unitAmpOut2: "Amps",
     label13Time: "13kW GC Charger:",
-    label21Time: "21kW GC Charger:",
     unitVolt1: "V", unitAmp1: "A", unitVolt2: "V", unitAh: "Ah", unitPercent: "%",
     disclaimer: "The charging time and output current are calculated for reference only. The actual charging time may vary based on battery age and battery health."
   }
@@ -367,33 +352,14 @@ function calculateTime() {
   // C-rate limit
   const cLimit = 0.57 * batteryAh;
 
-  // Reference current (for logs & base-time), using 13kW eff = 0.80
+  // Reference current (for logs), using 13kW eff = 0.80
   const rawOutputRef = K * 0.80;
-  const outputRef = Math.min(rawOutputRef, cLimit);
 
   // 13kW charger (fixed 0.80), clamp by charger (160A) and C-rate
   const output13 = Math.min(K * 0.80, 160, cLimit);
 
-  // 21kW charger: variable efficiency
-  // If K*0.70 <= 160A → low-current zone at eff=0.70; else ramp region 160–320A:
-  // Solve fixed-point: I = K*(0.7 + 0.1*(I-160)/160) ⇒ I = 0.6K / (1 - K/1600)
-  let powerLimited21;
-  if (K * 0.70 <= 160) {
-    powerLimited21 = K * 0.70;
-  } else {
-    const Ifp = (0.6 * K) / (1 - (K / 1600));
-    powerLimited21 = Ifp;
-  }
-  const output21 = Math.min(powerLimited21, 320, cLimit);
-
-  // Report efficiency at the final 21kW current
-  const eff21_report = output21 <= 160 ? 0.70
-    : output21 >= 320 ? 0.80
-    : 0.70 + ((output21 - 160) / 160) * 0.10;
-
-  // Update output boxes
+  // Update output box
   document.getElementById("outputCurrent13").innerText = output13.toFixed(1);
-  document.getElementById("outputCurrent21").innerText = output21.toFixed(1);
 
   // Breakdown log
   ref.push(
@@ -402,15 +368,11 @@ function calculateTime() {
       : "計算出力電流（ブレーカー電流制限基準）："
     ) + `${rawOutputRef.toFixed(2)} A`
   );
-  ref.push(
-    (isEN ? "[13kW fixed eff: " : "[13kW固定効: ") + "0.80] " +
-    (isEN ? "[21kW var eff: " : "[21kW可変効: ") + eff21_report.toFixed(2) + "]"
-  );
+  ref.push((isEN ? "[13kW fixed eff: " : "[13kW固定効: ") + "0.80]");
 
   ref.push(" ");
   ref.push((isEN ? "C-rate limit (0.57C): " : "Cレート上限（0.57C）：") + `${cLimit.toFixed(2)} A`);
   ref.push((isEN ? "13kW final output current: " : "13kW最終出力電流：") + `${output13.toFixed(2)} A`);
-  ref.push((isEN ? "21kW final output current: " : "21kW最終出力電流：") + `${output21.toFixed(2)} A`);
 
   // SoC & time math: remaining Ah / charger output current
   const socRatio = (100 - socPercent) / 100;
@@ -419,18 +381,14 @@ function calculateTime() {
   ref.push((isEN ? "Remaining capacity: " : "残容量：") + `${remainingAh.toFixed(1)} Ah`);
 
   const time13 = remainingAh / output13;
-  const time21 = remainingAh / output21;
 
   document.getElementById("time13kw").innerText = formatTime(time13);
-  document.getElementById("time21kw").innerText = formatTime(time21);
 
   ref.push(isEN ? "\n[Time breakdown]" : "\n【所要時間の内訳】");
   ref.push((isEN ? "13kW: " : "13kW：") + `${remainingAh.toFixed(1)} Ah ÷ ${output13.toFixed(2)} A = ${time13.toFixed(2)} h`);
-  ref.push((isEN ? "21kW: " : "21kW：") + `${remainingAh.toFixed(1)} Ah ÷ ${output21.toFixed(2)} A = ${time21.toFixed(2)} h`);
 
-  ref.push(isEN ? "\n[Final results]" : "\n【最終結果】");
+  ref.push(isEN ? "\n[Final result]" : "\n【最終結果】");
   ref.push(`13kW: ${formatTime(time13)}`);
-  ref.push(`21kW: ${formatTime(time21)}`);
 
   document.getElementById("calcRef").innerText = ref.join("\n");
 }
@@ -439,9 +397,7 @@ function clearFields() {
   // Keep inputVoltage & batteryVoltage as requested; clear others.
   ["inputCurrent", "batteryAh", "socPercent"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("outputCurrent13").innerText = "--";
-  document.getElementById("outputCurrent21").innerText = "--";
   document.getElementById("time13kw").innerText = "--";
-  document.getElementById("time21kw").innerText = "--";
   // Reset message in current language
   document.getElementById("calcRef").innerText =
     (document.documentElement.lang === 'en')
