@@ -187,7 +187,7 @@
       <span class="unit-label" id="unitVolt2">V</span>
     </label>
     <label class="input-with-unit">
-      <input type="number" id="batteryAh" min="1" max="2000" placeholder="例: 200"title="バッテリー容量">
+      <input type="number" id="batteryAh" min="1" max="2000" placeholder="例: 320" title="バッテリー容量">
       <span class="unit-label" id="unitAh">Ah</span>
     </label>
   </div>
@@ -238,7 +238,7 @@
   </div>
 
   <div class="calculation-ref" id="calcRef">※選択された値に基づいた詳細計算を表示します。</div>
-  <div class="version">V 1.0.2</div>
+  <div class="version">V 1.0.3</div>
 </div>
 
 <script>
@@ -292,9 +292,9 @@ function setLanguage(lang) {
 
   // Placeholders
   document.getElementById("inputVoltage").placeholder = (lang === 'en') ? "Ex: 200" : "例: 200";
-  document.getElementById("inputCurrent").placeholder = (lang === 'en') ? "Ex: 66" : "例: 66";
+  document.getElementById("inputCurrent").placeholder = (lang === 'en') ? "Ex: 30" : "例: 30";
   document.getElementById("batteryVoltage").placeholder = (lang === 'en') ? "Ex: 48" : "例: 48";
-  document.getElementById("batteryAh").placeholder = (lang === 'en') ? "Ex: 200" : "例: 200";
+  document.getElementById("batteryAh").placeholder = (lang === 'en') ? "Ex: 320" : "例: 320";
   document.getElementById("socPercent").placeholder = (lang === 'en') ? "Ex: 50" : "例: 50";
 
   // Tooltip for first box
@@ -346,9 +346,8 @@ function calculateTime() {
   inputCurrent *= 0.95;
   ref.push((isEN ? "Corrected input current (-5%): " : "入力電流補正（-5%）：") + `${inputCurrent.toFixed(2)} A`);
 
-  // CC-CV cutoff
-  const cutoffVoltage = batteryVoltage * 1.375;
-  ref.push((isEN ? "Cut-off voltage: " : "カットオフ電圧：") + `${cutoffVoltage.toFixed(2)} V`);
+  // CC-CV cutoff — used for max current (K) only, not for time; omitted from display (48V pack → 65V)
+  const cutoffVoltage = batteryVoltage * 65 / 48;
 
   // Available AC power (no charger efficiency yet)
   const pf = 0.8;
@@ -445,5 +444,3 @@ setLanguage('jp');
 </script>
 </body>
 </html>
-
-//v 1.0.2
