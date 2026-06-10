@@ -403,28 +403,21 @@ function calculateTime() {
   ref.push((isEN ? "13kW final output current: " : "13kW最終出力電流：") + `${output13.toFixed(2)} A`);
   ref.push((isEN ? "21kW final output current: " : "21kW最終出力電流：") + `${output21.toFixed(2)} A`);
 
-  // SoC & time math
+  // SoC & time math: remaining Ah / charger output current
   const socRatio = (100 - socPercent) / 100;
+  const remainingAh = batteryAh * socRatio;
   ref.push((isEN ? "Remaining SoC: " : "残SoC：") + `${(socRatio * 100).toFixed(1)} %`);
+  ref.push((isEN ? "Remaining capacity: " : "残容量：") + `${remainingAh.toFixed(1)} Ah`);
 
-  // Baseline: 0%→100% at 0.57C takes 56 min
-  const baselineHours = 56 / 60;
-  const scaleFactor = cLimit / outputRef;                 // how much faster/slower than 0.57C
-  const actualFullChargeHours = baselineHours * scaleFactor;
-  const totalHours = actualFullChargeHours * socRatio;    // linear remaining-time
-
-  // Charger-specific times by scaling from the same reference current
-  const time13 = totalHours * (outputRef / output13);
-  const time21 = totalHours * (outputRef / output21);
+  const time13 = remainingAh / output13;
+  const time21 = remainingAh / output21;
 
   document.getElementById("time13kw").innerText = formatTime(time13);
   document.getElementById("time21kw").innerText = formatTime(time21);
 
   ref.push(isEN ? "\n[Time breakdown]" : "\n【所要時間の内訳】");
-  ref.push((isEN ? "Full-charge base time (0.57C): " : "満充電基準時間（0.57C時）：") + `${baselineHours.toFixed(2)} h`);
-  ref.push((isEN ? "Current scaling factor: " : "電流スケーリング係数：") + `${scaleFactor.toFixed(2)}`);
-  ref.push((isEN ? "Actual full-charge time: " : "実際の満充電時間：") + `${actualFullChargeHours.toFixed(2)} h`);
-  ref.push((isEN ? "Remaining charge time (linear): " : "残充電時間（線形）：") + `${totalHours.toFixed(2)} h`);
+  ref.push((isEN ? "13kW: " : "13kW：") + `${remainingAh.toFixed(1)} Ah ÷ ${output13.toFixed(2)} A = ${time13.toFixed(2)} h`);
+  ref.push((isEN ? "21kW: " : "21kW：") + `${remainingAh.toFixed(1)} Ah ÷ ${output21.toFixed(2)} A = ${time21.toFixed(2)} h`);
 
   ref.push(isEN ? "\n[Final results]" : "\n【最終結果】");
   ref.push(`13kW: ${formatTime(time13)}`);
@@ -452,3 +445,5 @@ setLanguage('jp');
 </script>
 </body>
 </html>
+
+//v 1.0.2
