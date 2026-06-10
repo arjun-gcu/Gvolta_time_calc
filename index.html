@@ -158,6 +158,13 @@
     color: #94a3b8;
     margin-top: 20px;
   }
+  .disclaimer {
+    text-align: center;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: 16px;
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
@@ -208,7 +215,7 @@
   </div>
 
   <div class="output-section">
-    <span class="tag" id="outCurrentTitle">GC出力電流（最大）：</span>
+    <span class="tag" id="outCurrentTitle">GC出力電流（最大）：*</span>
     <div class="output-wrapper">
       <div style="display:flex; align-items:center; gap:6px;">
         <span id="label13">13kW：</span>
@@ -224,7 +231,7 @@
   </div>
 
   <div class="output-section">
-    <span class="tag" id="outTimeTitle">満充電までの所要時間：</span>
+    <span class="tag" id="outTimeTitle">満充電までの所要時間：*</span>
     <div class="output-wrapper">
       <div style="display:flex; align-items:center; gap:6px;">
         <span id="label13Time">13kW GCチャージャー：</span>
@@ -238,7 +245,8 @@
   </div>
 
   <div class="calculation-ref" id="calcRef">※選択された値に基づいた詳細計算を表示します。</div>
-  <div class="version">V 1.0.3</div>
+  <div class="disclaimer" id="disclaimer">充電時間および出力電流は参考値として計算されています。実際の充電時間は、バッテリーの経年劣化や健康状態により異なる場合があります。</div>
+  <div class="version">V 1.0.4</div>
 </div>
 
 <script>
@@ -251,15 +259,16 @@ const langData = {
     socNote: "例: 完全放電状態なら０％で、満充電状態なら１００％です。<br>例: 0%, 25%, 50%, 75%,　他。入力した％から１００％まで計算されます。",
     btnCalc: "計算",
     btnClear: "削除",
-    outCurrentTitle: "GC出力電流（最大）：",
-    outTimeTitle: "満充電までの所要時間：",
+    outCurrentTitle: "GC出力電流（最大）：*",
+    outTimeTitle: "満充電までの所要時間：*",
     label13: "13kW：",
     label21: "21kW：",
     unitAmpOut: "アンペア",
     unitAmpOut2: "アンペア",
     label13Time: "13kW GCチャージャー：",
     label21Time: "21kW GCチャージャー：",
-    unitVolt1: "V", unitAmp1: "A", unitVolt2: "V", unitAh: "Ah", unitPercent: "%"
+    unitVolt1: "V", unitAmp1: "A", unitVolt2: "V", unitAh: "Ah", unitPercent: "%",
+    disclaimer: "充電時間および出力電流は参考値として計算されています。実際の充電時間は、バッテリーの経年劣化や健康状態により異なる場合があります。"
   },
   en: {
     pageTitle: "GCU - Gvolta Charge Time Calculator",
@@ -269,15 +278,16 @@ const langData = {
     socNote: "Example: 0% means fully discharged, 100% means fully charged.<br>Example: 0%, 25%, 50%, 75%, etc. Time is calculated from entered % to 100%.",
     btnCalc: "Calculate",
     btnClear: "Clear",
-    outCurrentTitle: "GC Output Current (Max):",
-    outTimeTitle: "Time to Full Charge:",
+    outCurrentTitle: "GC Output Current (Max):*",
+    outTimeTitle: "Time to Full Charge:*",
     label13: "13kW:",
     label21: "21kW:",
     unitAmpOut: "Amps",
     unitAmpOut2: "Amps",
     label13Time: "13kW GC Charger:",
     label21Time: "21kW GC Charger:",
-    unitVolt1: "V", unitAmp1: "A", unitVolt2: "V", unitAh: "Ah", unitPercent: "%"
+    unitVolt1: "V", unitAmp1: "A", unitVolt2: "V", unitAh: "Ah", unitPercent: "%",
+    disclaimer: "The charging time and output current are calculated for reference only. The actual charging time may vary based on battery age and battery health."
   }
 };
 
