@@ -33,6 +33,65 @@
     font-size: 1.8rem;
     font-weight: 700;
   }
+  .kw-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .kw-buttons button {
+    flex: 1;
+    max-width: 200px;
+    padding: 10px 16px;
+    font-weight: bold;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: opacity 0.2s, border-color 0.2s;
+  }
+  .btn-13kw { background-color: #4ca1af; color: white; }
+  .btn-21kw { background-color: #9b59b6; color: white; }
+  .kw-buttons button.active {
+    border-color: #f1f1f1;
+    box-shadow: 0 0 10px rgba(255,255,255,0.3);
+  }
+  .kw-buttons button:not(.active) { opacity: 0.75; }
+  .kw-buttons button:hover { opacity: 1; }
+  .eff-config {
+    background-color: #475569;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+  }
+  .eff-config-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .eff-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+  }
+  .eff-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .eff-item input {
+    width: 70px;
+    padding: 6px 8px;
+    font-size: 0.95rem;
+    border: 1.8px solid #a0aec0;
+    border-radius: 6px;
+    background-color: #1e293b;
+    color: #e2e8f0;
+  }
+  .eff-item span { color: #cbd5e1; white-space: nowrap; }
   .lang-buttons {
     display: flex;
     justify-content: center;
@@ -165,11 +224,39 @@
     margin-top: 16px;
     line-height: 1.5;
   }
+  .charger-view { display: none; }
+  .charger-view.active { display: block; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1 id="pageTitle">GCU - Gvolta充電時間計算機</h1>
+
+  <div class="kw-buttons">
+    <button class="btn-13kw active" id="btnKw13" onclick="setCharger('13')">13 kW</button>
+    <button class="btn-21kw" id="btnKw21" onclick="setCharger('21')">21 kW</button>
+  </div>
+
+  <div class="eff-config">
+    <div class="eff-config-title" id="effConfigTitle">チャージャー効率設定</div>
+    <div class="eff-row" id="effRow13">
+      <div class="eff-item">
+        <span id="labelEff13">13kW 効率：</span>
+        <input type="number" id="eff13" min="0.01" max="1" step="0.01" value="0.82">
+      </div>
+    </div>
+    <div class="eff-row" id="effRow21" style="display:none;">
+      <div class="eff-item">
+        <span id="labelEff21Low">21kW 低電流効率：</span>
+        <input type="number" id="eff21Low" min="0.01" max="1" step="0.01" value="0.70">
+      </div>
+      <div class="eff-item">
+        <span id="labelEff21High">21kW 高電流効率：</span>
+        <input type="number" id="eff21High" min="0.01" max="1" step="0.01" value="0.80">
+      </div>
+    </div>
+  </div>
+
   <div class="lang-buttons">
     <button class="btn-jp" onclick="setLanguage('jp')">日本語</button>
     <button class="btn-en" onclick="setLanguage('en')">ENG</button>
@@ -214,23 +301,48 @@
     <button class="clear-btn" id="btnClear" onclick="clearFields()">削除</button>
   </div>
 
-  <div class="output-section">
-    <span class="tag" id="outCurrentTitle">GC出力電流（最大）：*</span>
-    <div class="output-wrapper">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span id="label13">13kW：</span>
-        <div class="output-box" id="outputCurrent13">--</div>
-        <span id="unitAmpOut">アンペア</span>
+  <!-- 13kW view -->
+  <div class="charger-view active" id="view13">
+    <div class="output-section">
+      <span class="tag" id="outCurrentTitle13">GC出力電流（最大）：*</span>
+      <div class="output-wrapper">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span id="label13">13kW：</span>
+          <div class="output-box" id="outputCurrent13">--</div>
+          <span id="unitAmpOut13">アンペア</span>
+        </div>
+      </div>
+    </div>
+    <div class="output-section">
+      <span class="tag" id="outTimeTitle13">満充電までの所要時間：*</span>
+      <div class="output-wrapper">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span id="label13Time">13kW GCチャージャー：</span>
+          <div class="output-box" id="time13kw">--</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="output-section">
-    <span class="tag" id="outTimeTitle">満充電までの所要時間：*</span>
-    <div class="output-wrapper">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span id="label13Time">13kW GCチャージャー：</span>
-        <div class="output-box" id="time13kw">--</div>
+  <!-- 21kW view -->
+  <div class="charger-view" id="view21">
+    <div class="output-section">
+      <span class="tag" id="outCurrentTitle21">GC出力電流（最大）：*</span>
+      <div class="output-wrapper">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span id="label21">21kW：</span>
+          <div class="output-box" id="outputCurrent21">--</div>
+          <span id="unitAmpOut21">アンペア</span>
+        </div>
+      </div>
+    </div>
+    <div class="output-section">
+      <span class="tag" id="outTimeTitle21">満充電までの所要時間：*</span>
+      <div class="output-wrapper">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span id="label21Time">21kW GCチャージャー：</span>
+          <div class="output-box" id="time21kw">--</div>
+        </div>
       </div>
     </div>
   </div>
@@ -241,40 +353,71 @@
 </div>
 
 <script>
+let currentCharger = '13';
+
 const langData = {
   jp: {
     pageTitle: "GCU - Gvolta充電時間計算機",
+    effConfigTitle: "チャージャー効率設定",
+    labelEff13: "13kW 効率：",
+    labelEff21Low: "21kW 低電流効率：",
+    labelEff21High: "21kW 高電流効率：",
     secInputTitle: "3相AC入力（ブレーカー定格電流を入力）",
     secBattInfo: "バッテリー情報",
     secSoc: "バッテリー現在チャージ（SoC）％",
     socNote: "例: 完全放電状態なら０％で、満充電状態なら１００％です。<br>例: 0%, 25%, 50%, 75%,　他。入力した％から１００％まで計算されます。",
     btnCalc: "計算",
     btnClear: "削除",
-    outCurrentTitle: "GC出力電流（最大）：*",
-    outTimeTitle: "満充電までの所要時間：*",
+    outCurrentTitle13: "GC出力電流（最大）：*",
+    outTimeTitle13: "満充電までの所要時間：*",
+    outCurrentTitle21: "GC出力電流（最大）：*",
+    outTimeTitle21: "満充電までの所要時間：*",
     label13: "13kW：",
-    unitAmpOut: "アンペア",
+    label21: "21kW：",
+    unitAmpOut13: "アンペア",
+    unitAmpOut21: "アンペア",
     label13Time: "13kW GCチャージャー：",
+    label21Time: "21kW GCチャージャー：",
     unitVolt1: "V", unitAmp1: "A", unitVolt2: "V", unitAh: "Ah", unitPercent: "%",
     disclaimer: "充電時間および出力電流は参考値として計算されています。実際の充電時間は、バッテリーの経年劣化や健康状態により異なる場合があります。"
   },
   en: {
     pageTitle: "GCU - Gvolta Charge Time Calculator",
+    effConfigTitle: "Charger Efficiency Settings",
+    labelEff13: "13kW efficiency:",
+    labelEff21Low: "21kW low-current eff:",
+    labelEff21High: "21kW high-current eff:",
     secInputTitle: "3-Phase AC Input (Breaker Rated Current)",
     secBattInfo: "Battery Information",
     secSoc: "Battery Current Charge (SoC) %",
     socNote: "Example: 0% means fully discharged, 100% means fully charged.<br>Example: 0%, 25%, 50%, 75%, etc. Time is calculated from entered % to 100%.",
     btnCalc: "Calculate",
     btnClear: "Clear",
-    outCurrentTitle: "GC Output Current (Max):*",
-    outTimeTitle: "Time to Full Charge:*",
+    outCurrentTitle13: "GC Output Current (Max):*",
+    outTimeTitle13: "Time to Full Charge:*",
+    outCurrentTitle21: "GC Output Current (Max):*",
+    outTimeTitle21: "Time to Full Charge:*",
     label13: "13kW:",
-    unitAmpOut: "Amps",
+    label21: "21kW:",
+    unitAmpOut13: "Amps",
+    unitAmpOut21: "Amps",
     label13Time: "13kW GC Charger:",
+    label21Time: "21kW GC Charger:",
     unitVolt1: "V", unitAmp1: "A", unitVolt2: "V", unitAh: "Ah", unitPercent: "%",
     disclaimer: "The charging time and output current are calculated for reference only. The actual charging time may vary based on battery age and battery health."
   }
 };
+
+function setCharger(kw) {
+  currentCharger = kw;
+  document.getElementById('btnKw13').classList.toggle('active', kw === '13');
+  document.getElementById('btnKw21').classList.toggle('active', kw === '21');
+  document.getElementById('view13').classList.toggle('active', kw === '13');
+  document.getElementById('view21').classList.toggle('active', kw === '21');
+  document.getElementById('effRow13').style.display = kw === '13' ? 'flex' : 'none';
+  document.getElementById('effRow21').style.display = kw === '21' ? 'flex' : 'none';
+  resetCalcRef();
+}
 
 function setLanguage(lang) {
   const t = langData[lang];
@@ -282,26 +425,26 @@ function setLanguage(lang) {
     const el = document.getElementById(key);
     if (el) el.innerHTML = t[key];
   }
-  // HTML lang
   document.documentElement.lang = (lang === 'en') ? 'en' : 'ja';
 
-  // Placeholders
   document.getElementById("inputVoltage").placeholder = (lang === 'en') ? "Ex: 200" : "例: 200";
   document.getElementById("inputCurrent").placeholder = (lang === 'en') ? "Ex: 30" : "例: 30";
   document.getElementById("batteryVoltage").placeholder = (lang === 'en') ? "Ex: 48" : "例: 48";
   document.getElementById("batteryAh").placeholder = (lang === 'en') ? "Ex: 320" : "例: 320";
   document.getElementById("socPercent").placeholder = (lang === 'en') ? "Ex: 50" : "例: 50";
 
-  // Tooltip for first box
   document.getElementById("inputVoltage").title = (lang === 'en') ? "Outlet voltage" : "コンセントの電圧";
   document.getElementById("inputCurrent").title = (lang === 'en') ? "Breaker amperage" : "ブレカーのアンペア";
   document.getElementById("batteryVoltage").title = (lang === 'en') ? "Battery voltage" : "バッテリー電圧";
   document.getElementById("batteryAh").title = (lang === 'en') ? "Battery capacity" : "バッテリー容量";
   document.getElementById("socPercent").title = (lang === 'en') ? "Battery state of charge" : "バッテリー現状";
 
-  // Default calcRef message
+  resetCalcRef();
+}
+
+function resetCalcRef() {
   document.getElementById("calcRef").innerText =
-    (lang === 'en')
+    (document.documentElement.lang === 'en')
       ? "Detailed calculations will be shown here based on inputs."
       : "※選択された値に基づいた詳細計算を表示します。";
 }
@@ -314,6 +457,38 @@ function formatTime(hours) {
     : `${hr} 時間 ${min} 分`;
 }
 
+function getEff13() {
+  const v = parseFloat(document.getElementById("eff13").value);
+  return isNaN(v) ? 0.82 : v;
+}
+
+function getEff21Low() {
+  const v = parseFloat(document.getElementById("eff21Low").value);
+  return isNaN(v) ? 0.70 : v;
+}
+
+function getEff21High() {
+  const v = parseFloat(document.getElementById("eff21High").value);
+  return isNaN(v) ? 0.80 : v;
+}
+
+function calcOutput21(K, cLimit, effLow, effHigh) {
+  let powerLimited21;
+  if (K * effLow <= 160) {
+    powerLimited21 = K * effLow;
+  } else {
+    const denom = 1 - (K * (effHigh - effLow)) / 160;
+    powerLimited21 = denom !== 0 ? (K * (2 * effLow - effHigh)) / denom : K * effHigh;
+  }
+  return Math.min(powerLimited21, 320, cLimit);
+}
+
+function reportEff21(output21, effLow, effHigh) {
+  if (output21 <= 160) return effLow;
+  if (output21 >= 320) return effHigh;
+  return effLow + ((output21 - 160) / 160) * (effHigh - effLow);
+}
+
 function calculateTime() {
   const inputVoltage = parseFloat(document.getElementById("inputVoltage").value);
   let inputCurrent = parseFloat(document.getElementById("inputCurrent").value);
@@ -324,7 +499,7 @@ function calculateTime() {
   const ref = [];
   const isEN = document.documentElement.lang === "en";
 
-  if ([inputVoltage,inputCurrent,batteryVoltage,batteryAh,socPercent].some(isNaN)) {
+  if ([inputVoltage, inputCurrent, batteryVoltage, batteryAh, socPercent].some(isNaN)) {
     alert(isEN ? "Please fill all fields." : "すべての入力欄に値を入力してください。");
     return;
   }
@@ -332,80 +507,92 @@ function calculateTime() {
     alert(isEN ? "SoC must be between 0 and 100." : "SoCは0〜100%の間で入力してください。");
     return;
   }
-    if (inputCurrent < 0 || inputCurrent > 400) {
+  if (inputCurrent < 0 || inputCurrent > 400) {
     alert(isEN ? "Input Current must be between 1A and 400A." : "ブレーカーのアンペアは１〜４00Aの間で入力してください。");
     return;
   }
 
-  // Breaker margin: -5%
   inputCurrent *= 0.95;
   ref.push((isEN ? "Corrected input current (-5%): " : "入力電流補正（-5%）：") + `${inputCurrent.toFixed(2)} A`);
 
-  // CC-CV cutoff — used for max current (K) only, not for time; omitted from display (48V pack → 65V)
   const cutoffVoltage = batteryVoltage * 65 / 48;
-
-  // Available AC power (no charger efficiency yet)
   const pf = 0.8;
-  const Pac = Math.sqrt(3) * inputVoltage * inputCurrent * pf; // W
-  const K = Pac / cutoffVoltage; // A at 100% efficiency (DC side)
-
-  // C-rate limit
+  const Pac = Math.sqrt(3) * inputVoltage * inputCurrent * pf;
+  const K = Pac / cutoffVoltage;
   const cLimit = 0.57 * batteryAh;
 
-  // Reference current (for logs), using 13kW eff = 0.82
-  const rawOutputRef = K * 0.82;
-
-  // 13kW charger (fixed 0.82), clamp by charger (160A) and C-rate
-  const output13 = Math.min(K * 0.82, 160, cLimit);
-
-  // Update output box
-  document.getElementById("outputCurrent13").innerText = output13.toFixed(1);
-
-  // Breakdown log
-  ref.push(
-    (isEN
-      ? "Calculated output current (breaker current limit based): "
-      : "計算出力電流（ブレーカー電流制限基準）："
-    ) + `${rawOutputRef.toFixed(2)} A`
-  );
-  ref.push((isEN ? "[13kW fixed eff: " : "[13kW固定効: ") + "0.82]");
-
-  ref.push(" ");
-  ref.push((isEN ? "C-rate limit (0.57C): " : "Cレート上限（0.57C）：") + `${cLimit.toFixed(2)} A`);
-  ref.push((isEN ? "13kW final output current: " : "13kW最終出力電流：") + `${output13.toFixed(2)} A`);
-
-  // SoC & time math: remaining Ah / charger output current
   const socRatio = (100 - socPercent) / 100;
   const remainingAh = batteryAh * socRatio;
   ref.push((isEN ? "Remaining SoC: " : "残SoC：") + `${(socRatio * 100).toFixed(1)} %`);
   ref.push((isEN ? "Remaining capacity: " : "残容量：") + `${remainingAh.toFixed(1)} Ah`);
+  ref.push((isEN ? "C-rate limit (0.57C): " : "Cレート上限（0.57C）：") + `${cLimit.toFixed(2)} A`);
+  ref.push(" ");
 
-  const time13 = remainingAh / output13;
+  if (currentCharger === '13') {
+    const eff13 = getEff13();
+    const rawOutputRef = K * eff13;
+    const output13 = Math.min(K * eff13, 160, cLimit);
 
-  document.getElementById("time13kw").innerText = formatTime(time13);
+    document.getElementById("outputCurrent13").innerText = output13.toFixed(1);
 
-  ref.push(isEN ? "\n[Time breakdown]" : "\n【所要時間の内訳】");
-  ref.push((isEN ? "13kW: " : "13kW：") + `${remainingAh.toFixed(1)} Ah ÷ ${output13.toFixed(2)} A = ${time13.toFixed(2)} h`);
+    ref.push(
+      (isEN
+        ? "Calculated output current (breaker current limit based): "
+        : "計算出力電流（ブレーカー電流制限基準）："
+      ) + `${rawOutputRef.toFixed(2)} A`
+    );
+    ref.push((isEN ? "[13kW eff: " : "[13kW効: ") + eff13.toFixed(2) + "]");
+    ref.push((isEN ? "13kW final output current: " : "13kW最終出力電流：") + `${output13.toFixed(2)} A`);
 
-  ref.push(isEN ? "\n[Final result]" : "\n【最終結果】");
-  ref.push(`13kW: ${formatTime(time13)}`);
+    const time13 = remainingAh / output13;
+    document.getElementById("time13kw").innerText = formatTime(time13);
+
+    ref.push(isEN ? "\n[Time breakdown]" : "\n【所要時間の内訳】");
+    ref.push((isEN ? "13kW: " : "13kW：") + `${remainingAh.toFixed(1)} Ah ÷ ${output13.toFixed(2)} A = ${time13.toFixed(2)} h`);
+    ref.push(isEN ? "\n[Final result]" : "\n【最終結果】");
+    ref.push(`13kW: ${formatTime(time13)}`);
+  } else {
+    const effLow = getEff21Low();
+    const effHigh = getEff21High();
+    const output21 = calcOutput21(K, cLimit, effLow, effHigh);
+    const eff21Report = reportEff21(output21, effLow, effHigh);
+
+    document.getElementById("outputCurrent21").innerText = output21.toFixed(1);
+
+    ref.push(
+      (isEN
+        ? "Calculated output current (breaker current limit based): "
+        : "計算出力電流（ブレーカー電流制限基準）："
+      ) + `${(K * effLow).toFixed(2)} A (${isEN ? "low-zone ref" : "低電流域参考"})`
+    );
+    ref.push(
+      (isEN ? "[21kW low eff: " : "[21kW低効: ") + effLow.toFixed(2) + "] " +
+      (isEN ? "[21kW high eff: " : "[21kW高効: ") + effHigh.toFixed(2) + "] " +
+      (isEN ? "[applied: " : "[適用: ") + eff21Report.toFixed(2) + "]"
+    );
+    ref.push((isEN ? "21kW final output current: " : "21kW最終出力電流：") + `${output21.toFixed(2)} A`);
+
+    const time21 = remainingAh / output21;
+    document.getElementById("time21kw").innerText = formatTime(time21);
+
+    ref.push(isEN ? "\n[Time breakdown]" : "\n【所要時間の内訳】");
+    ref.push((isEN ? "21kW: " : "21kW：") + `${remainingAh.toFixed(1)} Ah ÷ ${output21.toFixed(2)} A = ${time21.toFixed(2)} h`);
+    ref.push(isEN ? "\n[Final result]" : "\n【最終結果】");
+    ref.push(`21kW: ${formatTime(time21)}`);
+  }
 
   document.getElementById("calcRef").innerText = ref.join("\n");
 }
 
 function clearFields() {
-  // Keep inputVoltage & batteryVoltage as requested; clear others.
   ["inputCurrent", "batteryAh", "socPercent"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("outputCurrent13").innerText = "--";
   document.getElementById("time13kw").innerText = "--";
-  // Reset message in current language
-  document.getElementById("calcRef").innerText =
-    (document.documentElement.lang === 'en')
-      ? "Detailed calculations will be shown here based on inputs."
-      : "※選択された値に基づいた詳細計算を表示します。";
+  document.getElementById("outputCurrent21").innerText = "--";
+  document.getElementById("time21kw").innerText = "--";
+  resetCalcRef();
 }
 
-// Initialize
 setLanguage('jp');
 </script>
 </body>
