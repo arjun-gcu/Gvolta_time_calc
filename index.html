@@ -6,6 +6,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GCU - Gvolta充電時間計算機</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+<script>
+// --- Charger efficiency settings (edit here) ---
+const EFF_13KW = 0.82;
+const EFF_21KW_LOW = 0.70;
+const EFF_21KW_HIGH = 0.80;
+</script>
 <style>
   body {
     font-family: 'Roboto', sans-serif;
@@ -58,40 +64,6 @@
   }
   .kw-buttons button:not(.active) { opacity: 0.75; }
   .kw-buttons button:hover { opacity: 1; }
-  .eff-config {
-    background-color: #475569;
-    padding: 12px 15px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-    font-size: 0.9rem;
-  }
-  .eff-config-title {
-    font-weight: bold;
-    margin-bottom: 8px;
-    text-align: center;
-  }
-  .eff-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-    align-items: center;
-  }
-  .eff-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .eff-item input {
-    width: 70px;
-    padding: 6px 8px;
-    font-size: 0.95rem;
-    border: 1.8px solid #a0aec0;
-    border-radius: 6px;
-    background-color: #1e293b;
-    color: #e2e8f0;
-  }
-  .eff-item span { color: #cbd5e1; white-space: nowrap; }
   .lang-buttons {
     display: flex;
     justify-content: center;
@@ -237,26 +209,6 @@
     <button class="btn-21kw" id="btnKw21" onclick="setCharger('21')">21 kW</button>
   </div>
 
-  <div class="eff-config">
-    <div class="eff-config-title" id="effConfigTitle">チャージャー効率設定</div>
-    <div class="eff-row" id="effRow13">
-      <div class="eff-item">
-        <span id="labelEff13">13kW 効率：</span>
-        <input type="number" id="eff13" min="0.01" max="1" step="0.01" value="0.82">
-      </div>
-    </div>
-    <div class="eff-row" id="effRow21" style="display:none;">
-      <div class="eff-item">
-        <span id="labelEff21Low">21kW 低電流効率：</span>
-        <input type="number" id="eff21Low" min="0.01" max="1" step="0.01" value="0.70">
-      </div>
-      <div class="eff-item">
-        <span id="labelEff21High">21kW 高電流効率：</span>
-        <input type="number" id="eff21High" min="0.01" max="1" step="0.01" value="0.80">
-      </div>
-    </div>
-  </div>
-
   <div class="lang-buttons">
     <button class="btn-jp" onclick="setLanguage('jp')">日本語</button>
     <button class="btn-en" onclick="setLanguage('en')">ENG</button>
@@ -358,10 +310,6 @@ let currentCharger = '13';
 const langData = {
   jp: {
     pageTitle: "GCU - Gvolta充電時間計算機",
-    effConfigTitle: "チャージャー効率設定",
-    labelEff13: "13kW 効率：",
-    labelEff21Low: "21kW 低電流効率：",
-    labelEff21High: "21kW 高電流効率：",
     secInputTitle: "3相AC入力（ブレーカー定格電流を入力）",
     secBattInfo: "バッテリー情報",
     secSoc: "バッテリー現在チャージ（SoC）％",
@@ -383,10 +331,6 @@ const langData = {
   },
   en: {
     pageTitle: "GCU - Gvolta Charge Time Calculator",
-    effConfigTitle: "Charger Efficiency Settings",
-    labelEff13: "13kW efficiency:",
-    labelEff21Low: "21kW low-current eff:",
-    labelEff21High: "21kW high-current eff:",
     secInputTitle: "3-Phase AC Input (Breaker Rated Current)",
     secBattInfo: "Battery Information",
     secSoc: "Battery Current Charge (SoC) %",
@@ -414,8 +358,6 @@ function setCharger(kw) {
   document.getElementById('btnKw21').classList.toggle('active', kw === '21');
   document.getElementById('view13').classList.toggle('active', kw === '13');
   document.getElementById('view21').classList.toggle('active', kw === '21');
-  document.getElementById('effRow13').style.display = kw === '13' ? 'flex' : 'none';
-  document.getElementById('effRow21').style.display = kw === '21' ? 'flex' : 'none';
   resetCalcRef();
 }
 
@@ -455,21 +397,6 @@ function formatTime(hours) {
   return document.documentElement.lang === "en"
     ? `${hr} h ${min} min`
     : `${hr} 時間 ${min} 分`;
-}
-
-function getEff13() {
-  const v = parseFloat(document.getElementById("eff13").value);
-  return isNaN(v) ? 0.82 : v;
-}
-
-function getEff21Low() {
-  const v = parseFloat(document.getElementById("eff21Low").value);
-  return isNaN(v) ? 0.70 : v;
-}
-
-function getEff21High() {
-  const v = parseFloat(document.getElementById("eff21High").value);
-  return isNaN(v) ? 0.80 : v;
 }
 
 function calcOutput21(K, cLimit, effLow, effHigh) {
@@ -529,7 +456,7 @@ function calculateTime() {
   ref.push(" ");
 
   if (currentCharger === '13') {
-    const eff13 = getEff13();
+    const eff13 = EFF_13KW;
     const rawOutputRef = K * eff13;
     const output13 = Math.min(K * eff13, 160, cLimit);
 
@@ -552,8 +479,8 @@ function calculateTime() {
     ref.push(isEN ? "\n[Final result]" : "\n【最終結果】");
     ref.push(`13kW: ${formatTime(time13)}`);
   } else {
-    const effLow = getEff21Low();
-    const effHigh = getEff21High();
+    const effLow = EFF_21KW_LOW;
+    const effHigh = EFF_21KW_HIGH;
     const output21 = calcOutput21(K, cLimit, effLow, effHigh);
     const eff21Report = reportEff21(output21, effLow, effHigh);
 
